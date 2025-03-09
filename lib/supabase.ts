@@ -23,19 +23,11 @@ export const signUp = async (email: string, password: string, username: string) 
 
   if (authError) throw authError;
 
-  // Create user profile after successful signup
-  const { error: profileError } = await supabase
-    .from('users')
-    .insert([
-      {
-        id: authData.user.id,
-        username,
-        created_at: new Date().toISOString(),
-      },
-    ]);
+  if (!authData.session) {
+    throw new Error('No session after signup');
+  }
 
-  if (profileError) throw profileError;
-
+  // The user profile will be created automatically by the database trigger
   return authData;
 };
 
@@ -75,49 +67,6 @@ export const getProfile = async (userId: string) => {
     .select('*')
     .eq('id', userId)
     .single();
-
-  if (error) throw error;
-  return data;
-};
-
-// Social connection functions
-export const sendFriendRequest = async (userId: string, friendId: string) => {
-  const { error } = await supabase
-    .from('social_connections')
-    .insert([
-      {
-        user_id: userId,
-        friend_id: friendId,
-        status: 'pending',
-      },
-    ]);
-
-  if (error) throw error;
-};
-
-export const acceptFriendRequest = async (connectionId: string) => {
-  const { error } = await supabase
-    .from('social_connections')
-    .update({ status: 'accepted' })
-    .eq('id', connectionId);
-
-  if (error) throw error;
-};
-
-export const getFriendsList = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('social_connections')
-    .select(`
-      id,
-      friend:friend_id (
-        id,
-        username,
-        full_name,
-        avatar_url
-      )
-    `)
-    .eq('user_id', userId)
-    .eq('status', 'accepted');
 
   if (error) throw error;
   return data;

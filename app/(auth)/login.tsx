@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { Input, Button, Text } from '@rneui/themed';
 import { router } from 'expo-router';
+import { signIn } from '@/lib/supabase';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // TODO: Implement authentication with Supabase
-    router.replace('/(tabs)');
+  const handleLogin = async () => {
+    try {
+      setLoading(true);
+      await signIn(email, password);
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -23,6 +32,7 @@ export default function LoginScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         style={{ fontFamily: 'Inter-Regular' }}
+        disabled={loading}
       />
       
       <Input
@@ -31,18 +41,21 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         secureTextEntry
         style={{ fontFamily: 'Inter-Regular' }}
+        disabled={loading}
       />
 
       <Button
         title="Login"
         onPress={handleLogin}
         containerStyle={styles.button}
+        loading={loading}
       />
 
       <Button
         title="Need an account? Sign Up"
         type="clear"
         onPress={() => router.push('/signup')}
+        disabled={loading}
       />
     </View>
   );

@@ -1,16 +1,30 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
 import { Input, Button, Text } from '@rneui/themed';
 import { router } from 'expo-router';
+import { signUp } from '@/lib/supabase';
 
 export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = () => {
-    // TODO: Implement signup with Supabase
-    router.replace('/(tabs)');
+  const handleSignup = async () => {
+    if (!email || !password || !username) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await signUp(email, password, username);
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -23,6 +37,7 @@ export default function SignupScreen() {
         onChangeText={setUsername}
         autoCapitalize="none"
         style={{ fontFamily: 'Inter-Regular' }}
+        disabled={loading}
       />
 
       <Input
@@ -32,6 +47,7 @@ export default function SignupScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
         style={{ fontFamily: 'Inter-Regular' }}
+        disabled={loading}
       />
       
       <Input
@@ -40,18 +56,21 @@ export default function SignupScreen() {
         onChangeText={setPassword}
         secureTextEntry
         style={{ fontFamily: 'Inter-Regular' }}
+        disabled={loading}
       />
 
       <Button
         title="Sign Up"
         onPress={handleSignup}
         containerStyle={styles.button}
+        loading={loading}
       />
 
       <Button
         title="Already have an account? Login"
         type="clear"
         onPress={() => router.push('/login')}
+        disabled={loading}
       />
     </View>
   );
