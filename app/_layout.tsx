@@ -30,36 +30,44 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
+        if (session?.user) {
+          // Ensure user exists in the users table
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileError && profileError.code === 'PGRST116') {
+            // If user doesn't exist in the users table, create profile
+            const { error: insertError } = await supabase
+              .from('users')
+              .insert([
+                {
+                  id: session.user.id,
+                  username: session.user.email,
+                  created_at: new Date().toISOString(),
+                }
+              ]);
+
+            if (insertError) {
+              console.error('Error creating user profile:', insertError);
+            }
+          }
+        }
         router.replace('/(tabs)');
       } else if (event === 'SIGNED_OUT') {
         router.replace('/(auth)/login');
       }
+      setIsAuthChecking(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
-
-  async function checkAuth() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.replace('/(tabs)');
-      } else {
-        router.replace('/(auth)/login');
-      }
-    } catch (error) {
-      console.error('Error checking auth:', error);
-      router.replace('/(auth)/login');
-    } finally {
-      setIsAuthChecking(false);
-    }
-  }
 
   if (!fontsLoaded && !fontError) {
     return null;
